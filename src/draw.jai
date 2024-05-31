@@ -10,7 +10,8 @@ draw_frame :: () {
     // Check whether we need to deactivate elements before drawing
     if (!mouse.left.is_down || mouse.left.just_released) && (!mouse.middle.is_down || mouse.middle.just_released) then ui.active = .none;
 
-    status_bar_height := font_ui_line_height * 1.6;
+    // status_bar_height := font_ui_line_height * 1.6;
+    status_bar_height := font_ui_line_height * 1.2;
 
     active_pane_rect: Rect = ---;
 
@@ -326,7 +327,7 @@ draw_build_panel :: () {
     draw_rounded_rect_with_shadow(build_panel_rect, Color.BUILD_PANEL_BACKGROUND, radius = 0.1, shadow_size = char_size);
 
     margin := floor(4 * dpi_scale);
-    title_bar_height := font_ui_line_height + 2 * margin + 4 * dpi_scale;
+    title_bar_height := font_ui_line_height + 2 * margin + 4 * dpi_scale - 5;
     title_bar_rect, build_output_rect := cut_top(build_panel_rect, title_bar_height);
 
     if !is_valid(title_bar_rect) return;
@@ -1538,20 +1539,20 @@ draw_editor :: (editor_id: s64, main_area: Rect, status_bar_height: float, ui_id
             }
 
             #if DEBUG {
-                width = xx Simp.prepare_text(font_ui_bold, tprint("Offset: %  Line: %  Col: %", editor.cursors[main_cursor].pos, line + 1, col + 1));
+                width = xx Simp.prepare_text(font_ui_small, tprint("Offset: %  Line: %  Col: %", editor.cursors[main_cursor].pos, line + 1, col + 1));
             } else {
-                width = xx Simp.prepare_text(font_ui_bold, tprint("Line: %  Col: %", line + 1, col + 1));
+                width = xx Simp.prepare_text(font_ui_small, tprint("Line: %  Col: %", line + 1, col + 1));
             }
             line_col_start_x := status_bar_rect.x + status_bar_rect.w - width;
-            Simp.draw_prepared_text(font_ui_bold, xx line_col_start_x, xx pen.y, color = xx Color.UI_DIM);
+            Simp.draw_prepared_text(font_ui_small, xx line_col_start_x, xx pen.y, color = xx Color.UI_DIM);
 
             // Draw length of selected text if any text is currently selected
             if config.settings.show_selected_text_length && num_selected_bytes > 0 {
                 label := tprint("Selected: % chars  ", num_selected_chars);
                 if num_selected_bytes != num_selected_chars then label = tprint("Selected: % chars, % bytes  ", num_selected_chars, num_selected_bytes);
-                width += xx Simp.prepare_text(font_ui_bold, label);
+                width += xx Simp.prepare_text(font_ui_small, label);
                 line_col_start_x = status_bar_rect.x + status_bar_rect.w - width;
-                Simp.draw_prepared_text(font_ui_bold, xx line_col_start_x, xx pen.y, color = xx Color.UI_DIM);
+                Simp.draw_prepared_text(font_ui_small, xx line_col_start_x, xx pen.y, color = xx Color.UI_DIM);
             }
 
             // Maybe draw the number of cursors off screen
@@ -1585,7 +1586,7 @@ draw_editor :: (editor_id: s64, main_area: Rect, status_bar_height: float, ui_id
 
 }
 
-draw_file_info :: (buffer: Buffer, width: float, padding: float, _pen: Vector2, bold := true, draw_crlf_warning := false, draw_config_warning := false) -> new_width: float, new_pen: Vector2 {
+draw_file_info :: (buffer: Buffer, width: float, padding: float, _pen: Vector2, bold := false, draw_crlf_warning := false, draw_config_warning := false) -> new_width: float, new_pen: Vector2 {
     file_name_color := Color.UI_DEFAULT;
     if buffer.modified then file_name_color = Color.UI_WARNING;
 
