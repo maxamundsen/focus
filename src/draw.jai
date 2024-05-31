@@ -354,7 +354,7 @@ draw_build_panel :: () {
             x = title_bar_rect.x + char_x_advance,
             y = title_bar_rect.y + (title_bar_rect.h - font_ui_bold.character_height) / 2 + 2,
         };
-        Simp.draw_text(font_ui, xx pen.x, xx pen.y, "Build Output", xx Color.UI_DEFAULT);
+        Simp.draw_text(font_ui_small, xx pen.x, xx pen.y, "Build Output", xx Color.UI_DEFAULT);
 
         // Draw the close button
         {
