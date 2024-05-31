@@ -129,6 +129,7 @@ base_commands := #run -> [] Command {
         cmd( "Save",                              .save,                             .Single ),
         cmd( "Save As",                           .save_as,                          .Single ),
         cmd( "Save All",                          .save_all,                         .Single ),
+        cmd( "Reload File From Disk",             .reload_file_from_disk,            .Single ),
 
         cmd( "Delete Current File",               .delete_current_file,              .Single ),
 

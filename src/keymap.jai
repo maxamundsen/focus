@@ -344,6 +344,7 @@ ACTIONS_COMMON :: string.[
     "close_left_editor",
     "close_right_editor",
     "close_dialog",
+    "reload_file_from_disk",
     "escape",
 
     "go_to_next_build_error",

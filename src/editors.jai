@@ -117,6 +117,8 @@ active_editor_handle_event :: (editor: *Editor, buffer: *Buffer, event: Input.Ev
             case .close_left_editor;                if editors.active == editors.left  close_search_bar(editor); close_editor(.left);   return true;
             case .close_right_editor;               if editors.active == editors.right close_search_bar(editor); close_editor(.right);  return true;
 
+            case .reload_file_from_disk;            close_search_bar(editor); show_reload_file_dialog(editor.buffer_id);                return true;
+
             case .choose_language;                  close_search_bar(editor); show_dialog(*language_dialog);                            return true;
         }
 
@@ -180,6 +182,7 @@ active_editor_handle_event :: (editor: *Editor, buffer: *Buffer, event: Input.Ev
         case .save;                             save    (editor.buffer_id);
         case .save_as;                          save_as (editor.buffer_id);
         case .save_all;                         save_all();
+        case .reload_file_from_disk;            show_reload_file_dialog (editor.buffer_id);
 
         case .switch_to_left_editor;            switch_to_editor(.left);
         case .switch_to_right_editor;           switch_to_editor(.right);
@@ -1737,6 +1740,15 @@ save_as :: (buffer_id: s64) {
 save_all :: () {
     for * buffer, buffer_id : open_buffers {
         if buffer.modified  save(buffer_id);
+    }
+}
+
+reload_file_from_disk :: (buffer_id: s64) {
+    buffer := *open_buffers[buffer_id];
+    if buffer.readonly return;
+
+    if buffer.has_file {
+        //...
     }
 }
 

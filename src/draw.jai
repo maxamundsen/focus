@@ -2289,6 +2289,12 @@ draw_theme_dialog :: () {
     draw_generic_choice_dialog(*theme_dialog, Ui_Id.theme_dialog, label);
 }
 
+draw_reload_file_dialog :: () {
+    ui_id := Ui_Id.reload_file_dialog;
+    
+    
+}
+
 draw_unsaved_buffers_dialog :: () {
     ui_id := Ui_Id.unsaved_buffers;
 
@@ -3481,6 +3487,7 @@ Ui_Id :: enum s64 {
     build_panel_title_bar   :: -15;
     theme_dialog            :: -16;
     language_dialog         :: -17;
+    reload_file_dialog      :: -18;
 
     // The rest will be derived from loc
 }

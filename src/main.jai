@@ -830,6 +830,7 @@ Active_Global_Widget :: enum {
     confirm_overwrite_dialog;
     theme_dialog;
     language_dialog;
+    reload_file_dialog;
 }
 
 Project_Dir :: struct {
