@@ -877,27 +877,7 @@ find_or_create_an_empty_buffer :: () -> buffer_id: s64, created: bool {
     return buffer_id, true;
 }
 
-find_or_create_buffer :: (path: string) -> buffer_id: s64, created: bool {
-    #if OS == .WINDOWS {
-        if path.count > 248 return -1, false;  // Windows bad
-    }
-    lock(*open_buffers_lock);
-
-    buffer_id, found_buffer := table_find(*buffers_table, path);
-    buffer: *Buffer = ---;
-
-    if !found_buffer {
-        buffer_id = open_buffers.count;
-        buffer = bucket_array_add(*open_buffers);
-        init_buffer(buffer);
-        table_add(*buffers_table, copy_string(path), buffer_id);  // It should be ok to leak some memory here when we no longer need a buffer
-    }
-
-    unlock(*open_buffers_lock);  // only hold the lock when it's critical
-
-    if found_buffer return buffer_id, false;
-
-    // Create and load file
+load_file_into_buffer :: (path: string, buffer: *Buffer) {
     file_data, success := read_entire_file(path);
     if !success then file_data = sprint("Couldn't load file '%'", path);
     if is_file_binary(file_data) {
@@ -923,8 +903,47 @@ find_or_create_buffer :: (path: string) -> buffer_id: s64, created: bool {
 
     rescan_for_lines(buffer);
     retokenize(buffer);
+}
 
+find_or_create_buffer :: (path: string) -> buffer_id: s64, created: bool {
+    #if OS == .WINDOWS {
+        if path.count > 248 return -1, false;  // Windows bad
+    }
+    lock(*open_buffers_lock);
+
+    buffer_id, found_buffer := table_find(*buffers_table, path);
+    buffer: *Buffer = ---;
+
+    if !found_buffer {
+        buffer_id = open_buffers.count;
+        buffer = bucket_array_add(*open_buffers);
+        init_buffer(buffer);
+        table_add(*buffers_table, copy_string(path), buffer_id);  // It should be ok to leak some memory here when we no longer need a buffer
+    }
+
+    unlock(*open_buffers_lock);  // only hold the lock when it's critical
+
+    if found_buffer return buffer_id, false;
+
+    // Create and load file
+    load_file_into_buffer(path, buffer);
+    
     return buffer_id, true;
+}
+
+reload_buffer_from_disk :: (buffer_id: s64) {
+    buffer := *open_buffers[buffer_id];
+
+    if buffer.readonly return;
+
+    if buffer.has_file && buffer.modified {
+        full_path, path_success := get_absolute_path(buffer.file.full_path,, temp);
+        if !path_success then return;
+
+        buffer.dirty = false;
+        
+        load_file_into_buffer(full_path, buffer);
+    }
 }
 
 get_buffer_name :: (buffer: Buffer) -> string {

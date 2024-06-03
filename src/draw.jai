@@ -75,6 +75,7 @@ draw_frame :: () {
         case .commands_dialog;          draw_commands_dialog();
         case .theme_dialog;             draw_theme_dialog();
         case .language_dialog;          draw_language_dialog();
+        case .reload_file_dialog;       draw_reload_file_dialog();
     }
 
     draw_user_messages(screen, status_bar_height);
@@ -2289,12 +2290,6 @@ draw_theme_dialog :: () {
     draw_generic_choice_dialog(*theme_dialog, Ui_Id.theme_dialog, label);
 }
 
-draw_reload_file_dialog :: () {
-    ui_id := Ui_Id.reload_file_dialog;
-    
-    
-}
-
 draw_unsaved_buffers_dialog :: () {
     ui_id := Ui_Id.unsaved_buffers;
 
@@ -2408,6 +2403,31 @@ draw_unsaved_buffers_dialog :: () {
         close_unsaved_buffers_dialog();
         return;
     }
+}
+
+draw_reload_file_dialog :: () {
+    ui_id := Ui_Id.reload_file_dialog;
+
+    warning_message :: "Are you sure you want to reload from disk? Unsaved changes will be lost.";
+    
+    margin  := floor(12 * dpi_scale);
+    padding := floor( 4 * dpi_scale);
+    entry_height  := font_ui_line_height + padding * 2;
+    button_height := font_ui_medium_line_height + 2 * padding;
+    header_height := font_ui_medium_line_height + 2 * margin + 4 * dpi_scale;
+
+    box_rect := Rect.{
+        w = floor(clamp(screen.w * 0.3, 600 * dpi_scale, 1500 * dpi_scale)),
+        h = header_height + (entry_height + margin / 2) +  margin + padding + button_height + margin,
+    };
+    
+    box_rect.h += entry_height + margin;
+    box_rect.x = floor((screen.w - box_rect.w) / 2);
+    box_rect.y = screen.h - box_rect.h - floor(clamp(100 * dpi_scale, 0, (screen.h - box_rect.h) / 2));
+
+    maybe_set_hot_or_active(ui_id, box_rect, .NORMAL);
+
+    draw_rounded_rect_with_shadow(box_rect, Color.BACKGROUND_3);        
 }
 
 draw_confirm_overwrite_dialog :: () {

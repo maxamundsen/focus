@@ -294,6 +294,7 @@ main :: () {
                 case .commands_dialog;          handled = commands_dialog_handle_event(event);
                 case .theme_dialog;             handled = theme_dialog_handle_event(event);
                 case .language_dialog;          handled = language_dialog_handle_event(event);
+                case .reload_file_dialog;       handled = reload_file_dialog_handle_event(event);
             }
 
             if !handled {
@@ -905,6 +906,7 @@ dont_ignore_next_window_resize := false;
 #load "widgets/confirm_overwrite.jai";
 #load "widgets/theme_dialog.jai";
 #load "widgets/language_dialog.jai";
+#load "widgets/reload_file_dialog.jai";
 
 #load "langs/common.jai";
 #load "langs/jai.jai";

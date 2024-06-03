@@ -1744,15 +1744,6 @@ save_all :: () {
     }
 }
 
-reload_file_from_disk :: (buffer_id: s64) {
-    buffer := *open_buffers[buffer_id];
-    if buffer.readonly return;
-
-    if buffer.has_file {
-        //...
-    }
-}
-
 switch_to_editor :: (side: enum { left; right; other; }, duplicate_current := false) {
     if editors.layout == {
         case .None; return;
