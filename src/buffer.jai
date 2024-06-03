@@ -877,7 +877,26 @@ find_or_create_an_empty_buffer :: () -> buffer_id: s64, created: bool {
     return buffer_id, true;
 }
 
-load_file_into_buffer :: (path: string, buffer: *Buffer) {
+find_or_create_buffer :: (path: string) -> buffer_id: s64, created: bool {
+    #if OS == .WINDOWS {
+        if path.count > 248 return -1, false;  // Windows bad
+    }
+    lock(*open_buffers_lock);
+
+    buffer_id, found_buffer := table_find(*buffers_table, path);
+    buffer: *Buffer = ---;
+
+    if !found_buffer {
+        buffer_id = open_buffers.count;
+        buffer = bucket_array_add(*open_buffers);
+        init_buffer(buffer);
+        table_add(*buffers_table, copy_string(path), buffer_id);  // It should be ok to leak some memory here when we no longer need a buffer
+    }
+
+    unlock(*open_buffers_lock);  // only hold the lock when it's critical
+
+    if found_buffer return buffer_id, false;
+
     file_data, success := read_entire_file(path);
     if !success then file_data = sprint("Couldn't load file '%'", path);
     if is_file_binary(file_data) {
@@ -903,30 +922,6 @@ load_file_into_buffer :: (path: string, buffer: *Buffer) {
 
     rescan_for_lines(buffer);
     retokenize(buffer);
-}
-
-find_or_create_buffer :: (path: string) -> buffer_id: s64, created: bool {
-    #if OS == .WINDOWS {
-        if path.count > 248 return -1, false;  // Windows bad
-    }
-    lock(*open_buffers_lock);
-
-    buffer_id, found_buffer := table_find(*buffers_table, path);
-    buffer: *Buffer = ---;
-
-    if !found_buffer {
-        buffer_id = open_buffers.count;
-        buffer = bucket_array_add(*open_buffers);
-        init_buffer(buffer);
-        table_add(*buffers_table, copy_string(path), buffer_id);  // It should be ok to leak some memory here when we no longer need a buffer
-    }
-
-    unlock(*open_buffers_lock);  // only hold the lock when it's critical
-
-    if found_buffer return buffer_id, false;
-
-    // Create and load file
-    load_file_into_buffer(path, buffer);
     
     return buffer_id, true;
 }
@@ -940,9 +935,44 @@ reload_buffer_from_disk :: (buffer_id: s64) {
         full_path, path_success := get_absolute_path(buffer.file.full_path,, temp);
         if !path_success then return;
 
-        buffer.dirty = false;
+        file_contents_str, success := read_entire_file(full_path);
+        if is_file_binary(file_contents_str) {
+            free(file_contents_str);
+            file_contents_str = sprint("Couldn't display file '%' because it's either binary or non-UTF8.", full_path);
+            buffer.readonly = true;
+        }
+    
+        if !success { log_error("Couldn't read file '%'\n", full_path); #if DEBUG_FILE_REFRESH log("Couldn't read file"); return; }
+        defer free(file_contents_str);
         
-        load_file_into_buffer(full_path, buffer);
+        // Remember cursor state - if we have 2 editors then the last editor's state will be remembered
+        for * editor : open_editors {
+            if editor.buffer_id != buffer_id continue;
+
+            new_edit_group(buffer, editor);
+            array_resize(*buffer.cursors, editor.cursors.count);
+            for * cursor, i : buffer.cursors { cursor.* = editor.cursors[i]; }
+        }
+                
+        new_replace_edit(buffer, 0, xx buffer.bytes.count, cast(string) buffer.bytes, file_contents_str);
+        replace_range_raw(buffer, 0, xx buffer.bytes.count, file_contents_str);
+        rescan_for_lines(buffer);
+        retokenize(buffer);
+        
+        buffer.dirty    = false;
+        buffer.modified = false;
+        
+        // Place cursor at the first character of the current line, even if that line gets deleted in the modified buffer.
+        // If last line of dirty buffer > buffer on disk, then place cursor on the last line.
+        for * editor : open_editors {
+            if editor.buffer_id != buffer_id continue;
+            new_edit_group(buffer, editor);
+            for * cursor : editor.cursors { put_cursor_in_valid_spot(cursor, buffer); }
+            organise_cursors(editor);
+            if editor.line_wrap == .on then rescan_for_wrapped_lines(editor, buffer);
+        }
+        
+        refresh_all_editors_for_buffer(buffer_id);
     }
 }
 
@@ -1031,9 +1061,12 @@ refresh_buffer_from_disk :: (path: string) {
 
     if buffer.modified {
         // Mark conflict
-        // TODO: display a dialog prompting to reload
         buffer.modified_on_disk = true;
+        
+        // Prompt
+        show_reload_file_dialog(buffer_id);
     } else {
+        
         remember_last_modtime_and_size(buffer);
 
         // Remember cursor state - if we have 2 editors then the last editor's state will be remembered

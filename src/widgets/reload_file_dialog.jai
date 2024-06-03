@@ -1,9 +1,11 @@
+reload_buffer_id: s64;
+
 reload_file_dialog_handle_event :: (event: Input.Event) -> bool {
     if event.type == .KEYBOARD && event.key_pressed {
         if event.key_code == {
-            case .ESCAPE; close_reload_file_dialog();   return true;
-            case #char "Y"; do_thing(); #through;
-            case #char "N"; close_reload_file_dialog(); return true;
+            case .ESCAPE;   close_reload_file_dialog();       return true;
+            case #char "Y"; reload_file_dialog_proceed();     #through;
+            case #char "N"; close_reload_file_dialog();       return true;
         }
     }
 
@@ -19,10 +21,7 @@ close_reload_file_dialog :: () {
     activate_editors();
 }
 
-#scope_file
-reload_buffer_id: s64;
-
-do_thing :: () {
+reload_file_dialog_proceed :: () {
     reload_buffer_from_disk(reload_buffer_id);    
     close_reload_file_dialog();
 }

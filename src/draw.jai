@@ -2408,7 +2408,8 @@ draw_unsaved_buffers_dialog :: () {
 draw_reload_file_dialog :: () {
     ui_id := Ui_Id.reload_file_dialog;
 
-    warning_message :: "Are you sure you want to reload from disk? Unsaved changes will be lost.";
+    confirm_message :: "Are you sure you want to reload from disk?";
+    warning_message :: "Unsaved changes will be lost.";
     
     margin  := floor(12 * dpi_scale);
     padding := floor( 4 * dpi_scale);
@@ -2418,16 +2419,87 @@ draw_reload_file_dialog :: () {
 
     box_rect := Rect.{
         w = floor(clamp(screen.w * 0.3, 600 * dpi_scale, 1500 * dpi_scale)),
-        h = header_height + (entry_height + margin / 2) +  margin + padding + button_height + margin,
+        h = header_height + entry_height + margin +  margin + padding + button_height + margin,
     };
     
     box_rect.h += entry_height + margin;
     box_rect.x = floor((screen.w - box_rect.w) / 2);
     box_rect.y = screen.h - box_rect.h - floor(clamp(100 * dpi_scale, 0, (screen.h - box_rect.h) / 2));
 
+    header_rect, buffers_rect := cut_top(box_rect, header_height);
+    buffers_rect = shrink(buffers_rect, margin);
+
     maybe_set_hot_or_active(ui_id, box_rect, .NORMAL);
 
-    draw_rounded_rect_with_shadow(box_rect, Color.BACKGROUND_3);        
+    draw_rounded_rect_with_shadow(box_rect, Color.BACKGROUND_3);   
+    
+    // Header
+    {
+        push_scissor(header_rect);
+        defer pop_scissor();
+
+        draw_rounded_rect_with_corners(header_rect, Color.BACKGROUND_4, tl = .in, tr = .in, br = .none, bl = .none);
+
+        pen_x := cast(s32) (header_rect.x + 2 * margin);
+        pen_y := cast(s32) (header_rect.y + (header_rect.h - font_ui_medium.character_height) / 2 + 2);
+        Simp.draw_text(font_ui_medium, pen_x, pen_y, confirm_message, xx Color.UI_DEFAULT);
+
+        hr := cut_bottom(header_rect, 1);
+        draw_rect(hr, Color.BACKGROUND_1);
+    }
+    
+    // Buffer info
+    {
+        push_scissor(buffers_rect);
+        defer pop_scissor();
+        
+        entry_rect := cut_top(buffers_rect, entry_height);
+        
+        Simp.draw_text(
+            font_ui,
+            xx (entry_rect.x + margin),
+            xx (entry_rect.y + (entry_rect.h - font_ui.character_height) / 2 + 2 * dpi_scale),
+            warning_message,
+            xx Color.UI_WARNING,
+        );
+        entry_rect.y -= entry_rect.h + margin;
+        
+        pen := Vector2.{
+            x = entry_rect.x + margin,
+            y = entry_rect.y + (entry_rect.h - font_ui.character_height) / 2 + 2 * dpi_scale,
+        };
+        
+        width: float;
+        
+        buffer := *open_buffers[reload_buffer_id];
+        
+        width, _ = draw_file_info(buffer, width, padding, pen);
+                
+        entry_rect.y -= entry_rect.h + margin / 2;
+    }
+    
+    // Buttons
+    {
+        buttons_row_rect := cut_bottom(buffers_rect, button_height);
+
+        cancel_button, dont_save_button, save_all_button: Rect;
+
+        activated, width := draw_button(font_ui, "Cancel", Color.UI_NEUTRAL, Color.UI_DEFAULT, ui_id, buttons_row_rect, .right, margin / 2, margin);
+        if activated close_reload_file_dialog();
+
+        buttons_row_rect.w -= width + margin;
+
+        activated, width = draw_button(font_ui, "Reload", Color.UI_WARNING, Color.UI_DEFAULT, ui_id, buttons_row_rect, .right, margin / 2, margin);
+        if activated reload_file_dialog_proceed();
+
+        buttons_row_rect.w -= width + margin;
+    }
+
+    if ui.active != .none && ui.active != ui_id && !is_child(ui.active, ui_id) {
+        // Close the dialog on clicks elsewhere
+        close_reload_file_dialog();
+        return;
+    }     
 }
 
 draw_confirm_overwrite_dialog :: () {
